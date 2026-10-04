@@ -1,0 +1,13 @@
+{
+  "rules": {
+    "caixa": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "percentual": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+      "nivel_cm": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 26" },
+      "volume_l": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5" }
+    },
+    ".read": false,
+    ".write": false
+  }
+}

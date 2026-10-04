@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#075985">
+  <title>Nível da caixa d'água</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color: #e0f2fe; background: #071827; }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; }
+    main { width: min(430px, 100%); background: #0c2b40; border: 1px solid #164e63; border-radius: 24px; padding: 24px; box-shadow: 0 24px 70px #0008; }
+    h1 { margin: 0 0 6px; font-size: 1.45rem; }
+    #estado { color: #7dd3fc; margin-bottom: 22px; }
+    .tanque { height: 330px; border: 5px solid #bae6fd; border-radius: 22px 22px 34px 34px; overflow: hidden; position: relative; background: #06131d; }
+    .agua { position: absolute; inset: auto 0 0; height: 0; min-height: 2px; background: linear-gradient(#38bdf8, #0369a1); transition: height .7s ease; }
+    .leitura { position: absolute; inset: 0; z-index: 2; display: grid; place-content: center; text-align: center; text-shadow: 0 2px 9px #000; }
+    .percentual { font-size: 4.4rem; font-weight: 800; line-height: 1; }
+    .volume { font-size: 1.25rem; margin-top: 10px; }
+    .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+    .card { background: #10384e; border-radius: 14px; padding: 12px; }
+    .rotulo { display: block; color: #7dd3fc; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; }
+    .valor { font-size: 1.15rem; font-weight: 700; }
+    footer { color: #7dd3fc; text-align: center; font-size: .78rem; margin-top: 16px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Caixa d'água · 5 litros</h1>
+  <div id="estado">Conectando ao Firebase…</div>
+  <div class="tanque">
+    <div class="agua" id="agua"></div>
+    <div class="leitura"><div class="percentual" id="percentual">--%</div><div class="volume" id="volume">-- L</div></div>
+  </div>
+  <div class="grade">
+    <div class="card"><span class="rotulo">Nível</span><span class="valor" id="nivel">-- cm</span></div>
+    <div class="card"><span class="rotulo">Distância</span><span class="valor" id="distancia">-- cm</span></div>
+  </div>
+  <footer>ESP8266 + HC-SR04 · atualização em tempo real</footer>
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAfYVdltzv8WVR-JS29t2-nfWrYbpBCjCc",
+    authDomain: "nivel-caixa-5l-esp8266.firebaseapp.com",
+    databaseURL: "https://nivel-caixa-5l-esp8266-default-rtdb.firebaseio.com",
+    projectId: "nivel-caixa-5l-esp8266"
+  };
+
+  const el = id => document.getElementById(id);
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+
+  try {
+    await signInAnonymously(auth);
+    onValue(ref(db, "caixa"), snapshot => {
+      const d = snapshot.val();
+      if (!d) { el("estado").textContent = "Aguardando a primeira medição…"; return; }
+      const p = Math.max(0, Math.min(100, Number(d.percentual) || 0));
+      el("agua").style.height = `${p}%`;
+      el("percentual").textContent = `${p.toFixed(0)}%`;
+      el("volume").textContent = `${Number(d.volume_l).toFixed(2)} L`;
+      el("nivel").textContent = `${Number(d.nivel_cm).toFixed(1)} cm`;
+      el("distancia").textContent = `${Number(d.distancia_cm).toFixed(1)} cm`;
+      el("estado").textContent = d.status === "online" ? "● Online" : String(d.status || "Sem status");
+    });
+  } catch (erro) {
+    el("estado").textContent = "Falha de autenticação: verifique a configuração";
+    console.error(erro);
+  }
+</script>
+</body>
+</html>
